@@ -122,11 +122,11 @@ export default function LoginPage() {
 
             <div className="mt-6 pt-6 border-t border-neutral-200">
               <p className="text-xs text-neutral-500 text-center mb-2">Demo accounts:</p>
-              <div className="space-y-1 text-xs text-neutral-600">
+              {/* <div className="space-y-1 text-xs text-neutral-600">
                 <p>Admin: admin@dolt.com / D0LTadmin</p>
                 <p>Provider: provider@dolt.com / provider123</p>
                 <p>User: user@dolt.com / user123</p>
-              </div>
+              </div> */}
             </div>
           </form>
         </div>
