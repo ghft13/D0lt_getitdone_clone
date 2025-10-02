@@ -16,7 +16,28 @@ export const metadata: Metadata = {
   title: "DOLT - Smart Maintenance Solutions",
   description:
     "Professional maintenance services powered by IoT technology across Latin America",
-  generator: "v0.app",
+  generator: "Nasir",
+  openGraph: {
+    title: "DOLT - Smart Maintenance Solutions",
+    description:
+      "Professional maintenance services powered by IoT technology across Latin America",
+    images: [
+      {
+        url: "/images/logo/D_Black.png",  
+        width: 1200,
+        height: 630,
+        alt: "DOLT Logo",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DOLT - Smart Maintenance Solutions",
+    description:
+      "Professional maintenance services powered by IoT technology across Latin America",
+    images: ["/images/logo/D_Black.png"],  
+  },
 };
 
 export default function RootLayout({
