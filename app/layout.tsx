@@ -10,7 +10,7 @@ import { BookingProvider } from "@/contexts/booking-context";
 import { CartProvider } from "@/contexts/cart-context";
 import { LanguageProvider } from "@/contexts/language-context";
 import ChatWidget from "@/components/chat-widget";
-import WhatsAppButton from "@/components/whatsapp-button";
+// import WhatsAppButton from "@/components/whatsapp-button";
 
 export const metadata: Metadata = {
   title: "DOLT - Smart Maintenance Solutions",
@@ -31,7 +31,7 @@ export default function RootLayout({
               <CartProvider>
                 {children}
                 <ChatWidget />
-                <WhatsAppButton />
+                {/* <WhatsAppButton /> */}
               </CartProvider>
             </BookingProvider>
           </AuthProvider>

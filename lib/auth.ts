@@ -1,12 +1,10 @@
-// Authentication utilities
-// This will integrate with Supabase when the integration is added
-
 import type { UserRole } from "./db-types"
 
 export interface AuthUser {
   id: string
   email: string
   full_name: string
+  phone?: string
   role: UserRole
   profileImage?: string
 }
@@ -25,6 +23,7 @@ export const mockUsers = [
     email: "admin@dolt.com",
     password: "D0LTadmin",
     full_name: "ADMIN",
+    phone: "",
     role: "admin" as UserRole,
     profileImage: "https://example.com/admin-image.jpg",
   },
@@ -33,6 +32,7 @@ export const mockUsers = [
     email: "provider@dolt.com",
     password: "provider123",
     full_name: "Juan Martinez",
+    phone: "+1 (555) 123-4567",
     role: "provider" as UserRole,
     profileImage: "https://example.com/provider-image.jpg",
   },
@@ -41,6 +41,7 @@ export const mockUsers = [
     email: "user@dolt.com",
     password: "user123",
     full_name: "Maria Rodriguez",
+    phone: "+1 (555) 987-6543",
     role: "user" as UserRole,
     profileImage: "https://example.com/user-image.jpg",
   },
@@ -60,6 +61,7 @@ export async function signIn(email: string, password: string): Promise<AuthSessi
       id: user.id,
       email: user.email,
       full_name: user.full_name,
+      phone: user.phone,
       role: user.role,
       profileImage: user.profileImage,
     },
@@ -70,7 +72,7 @@ export async function signIn(email: string, password: string): Promise<AuthSessi
   return session
 }
 
-export async function signUp(email: string, password: string, full_name: string): Promise<AuthSession | null> {
+export async function signUp(email: string, password: string, full_name: string, phone?: string, role?: UserRole): Promise<AuthSession | null> {
   // TODO: Replace with actual Supabase authentication
   // For now, create a mock user
   const newUser = {
@@ -78,7 +80,8 @@ export async function signUp(email: string, password: string, full_name: string)
     email,
     password,
     full_name,
-    role: "user" as UserRole,
+    phone: phone || "",
+    role: role || "user" as UserRole,
     profileImage: "",
   }
 
@@ -89,6 +92,7 @@ export async function signUp(email: string, password: string, full_name: string)
       id: newUser.id,
       email: newUser.email,
       full_name: newUser.full_name,
+      phone: newUser.phone,
       role: newUser.role,
       profileImage: newUser.profileImage,
     },

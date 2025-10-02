@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { MessageCircle, X, Send } from "lucide-react"
+import { FaWhatsapp } from "react-icons/fa"
 
 interface Message {
   id: string
@@ -21,6 +22,15 @@ export default function ChatWidget() {
     },
   ])
   const [inputValue, setInputValue] = useState("")
+
+  const phoneNumber = "5491112345678" // WhatsApp number in international format
+  const message = "Hello! I'm interested in DOLT's maintenance services."
+
+  const openWhatsApp = () => {
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`
+    window.open(url, "_blank")
+    setIsOpen(false) // Optionally close chat after opening WhatsApp
+  }
 
   const handleSend = () => {
     if (!inputValue.trim()) return
@@ -89,9 +99,20 @@ export default function ChatWidget() {
                 <p className="text-xs text-white/80">Online</p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 rounded-full p-2 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* WhatsApp Button in Header */}
+              <button
+                onClick={openWhatsApp}
+                className="hover:bg-white/40 rounded-full p-2 transition-colors"
+                title="Chat on WhatsApp"
+              >
+                <FaWhatsapp className="w-5 h-5 text-green-500" />
+              </button>
+              {/* Close Button */}
+              <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 rounded-full p-2 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
