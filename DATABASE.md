@@ -6,6 +6,7 @@ This document describes the database schema for the DOLT maintenance platform. T
 
 ## Tables
 
+
 ### users
 Stores all user accounts with role-based access control.
 
