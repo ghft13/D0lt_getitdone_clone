@@ -1,9 +1,8 @@
-// TypeScript types for database tables
-// These match the SQL schema and can be used throughout the application
+// @/lib/db-types.ts - Complete file with all exports
 
 export type UserRole = "admin" | "provider" | "owner" | "manager" | "user"
 
-export type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled"
+export type BookingStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled" | "assigned" | "accepted" | "completion_requested"
 
 export type PaymentStatus = "pending" | "processing" | "succeeded" | "failed" | "refunded"
 
@@ -27,6 +26,9 @@ export interface User {
   email_verified: boolean
   created_at: string
   updated_at: string
+  // CamelCase aliases for code compatibility
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Company {
@@ -62,6 +64,7 @@ export interface Provider {
   is_available: boolean
   created_at: string
   updated_at: string
+  name?: string  // For dashboard display
 }
 
 export interface Service {
@@ -87,7 +90,10 @@ export interface Booking {
   status: BookingStatus
   scheduled_date?: string
   completed_date?: string
-  address: string
+  address?: {
+    street: string
+    city: string
+  } | string  // Support both object and string
   latitude?: number
   longitude?: number
   notes?: string
@@ -97,6 +103,35 @@ export interface Booking {
   payment_status?: string
   created_at: string
   updated_at: string
+  // Firebase/OTP extensions
+  providerId?: string
+  homeownerId?: string
+  price?: number
+  preferredDateTime?: string | Date
+  transactionId?: string
+  otp?: string
+  rating?: number
+  // Nested for Firestore
+  service?: {
+    name: string
+    title?: string  // Added for code access (matches Service.title)
+    description: string
+  }
+  homeowner?: {
+    name: string
+    email: string
+  }
+  provider?: {
+    name: string
+  }
+  history?: Array<{
+    status: BookingStatus
+    timestamp: string
+    note?: string
+  }>
+  // CamelCase aliases
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Payment {
@@ -111,6 +146,17 @@ export interface Payment {
   metadata?: Record<string, any>
   created_at: string
   updated_at: string
+  total_amount?: number  // Added for dashboard fallback
+  items?: Array<{
+    id: string
+    quantity: number
+    price: number
+    product?: { name: string }  // Added for order display
+  }>
+  homeownerId?: string
+  // Aliases
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface Contact {
@@ -135,3 +181,12 @@ export interface Review {
   created_at: string
   updated_at: string
 }
+
+// Required exports (aliases/extensions)
+export type BookingData = Booking
+export type OrderData = Payment
+export interface ExtendedAuthUser extends User {
+  token?: string
+  company_id?: string
+}
+export type ProviderData = Provider

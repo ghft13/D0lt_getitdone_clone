@@ -104,3 +104,153 @@ export function findNearbyProviders<T extends { latitude?: number; longitude?: n
     })
     .sort((a, b) => a.distance - b.distance)
 }
+
+// Union type for booking statuses based on DOLT schema
+export type BookingStatus = 'pending' | 'assigned' | 'accepted' | 'in_progress' | 'completion_requested' | 'completed' | 'cancelled' | 'failed_payment';
+
+// Union type for order statuses
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+// Interface for address object (shared across users, bookings, etc.)
+export interface Address {
+  street: string;
+  city: string;
+  zip: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+// Interface for notifications preferences
+export interface NotificationPrefs {
+  email: boolean;
+  push: boolean;
+}
+
+// Extended AuthUser type (add these optional fields to your existing AuthUser from auth-context)
+export interface ExtendedAuthUser {
+  id: string;
+  role: 'admin' | 'provider' | 'user' | 'owner' | 'manager';
+  name?: string;
+  email: string;
+  phone?: string;
+  profileImage?: string;
+  address?: Address;
+  notifications?: NotificationPrefs;
+  companyId?: string; // For manager/owner roles
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Booking data interface (from Firestore bookings collection)
+export interface BookingData {
+  id: string;
+  homeownerId: string;
+  providerId?: string;
+  serviceId: string;
+  service?: {
+    name: string;
+    description?: string;
+    price: number;
+    duration?: number;
+    category?: string;
+  };
+  homeowner?: {
+    name: string;
+    email?: string;
+  };
+  address: Address;
+  preferredDateTime?: string;
+  notes?: string;
+  price: number;
+  status: BookingStatus;
+  otp?: string;
+  rating?: number;
+  transactionId?: string;
+  createdAt: string;
+  updatedAt: string;
+  history?: Array<{
+    status: BookingStatus;
+    timestamp: string;
+  }>;
+}
+
+// Order data interface (from Firestore orders collection)
+export interface OrderData {
+  id: string;
+  homeownerId: string;
+  items: Array<{
+    productId: string;
+    product?: {
+      name: string;
+      description?: string;
+      price: number;
+      images?: string[];
+    };
+    quantity: number;
+    price: number;
+    installation?: boolean;
+  }>;
+  shippingAddress: Address;
+  totalPrice: number;
+  status: OrderStatus;
+  installationBookingId?: string;
+  transactionId?: string;
+  invoiceLink?: string;
+  createdAt: string;
+  updatedAt: string;
+  history?: Array<{
+    status: OrderStatus;
+    timestamp: string;
+  }>;
+}
+
+// Provider data interface (for reference)
+export interface ProviderData {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  location?: Address;
+  skills: string[];
+  averageRating?: number;
+  acceptanceRate?: number;
+  bankDetails?: {
+    accountNumber: string;
+    routingNumber: string;
+  };
+  notificationPrefs?: NotificationPrefs;
+  companyId?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Service data interface (for reference)
+export interface ServiceData {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Product data interface (for reference)
+export interface ProductData {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  specs?: Record<string, any>;
+  images: string[];
+  category: string;
+  stockGlobal: number;
+  autoReplenishThreshold?: number;
+  createdAt: string;
+  updatedAt: string;
+  inventory?: Record<string, number>; // storeId: stock
+}

@@ -1,65 +1,96 @@
+// provider/page.tsx
 "use client"
 
 import DashboardLayout from "@/components/dashboard-layout"
 import StatCard from "@/components/stat-card"
 import { ProtectedRoute } from "@/components/protected-route"
-import { Calendar, DollarSign, Star, Clock, CheckCircle, XCircle } from "lucide-react"
+import { Calendar, DollarSign, Star, Clock, CheckCircle, XCircle, MapPin, Settings, TrendingUp, Package } from "lucide-react"
 import { useBookings } from "@/contexts/booking-context"
 import { useAuth } from "@/contexts/auth-context"
+import { collection, query, where, getDocs, orderBy, DocumentData, QueryDocumentSnapshot } from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import { format } from "date-fns"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import type { BookingData, BookingStatus } from '@/lib/db-types'
 
 export default function ProviderDashboard() {
   const { user } = useAuth()
-  const { getProviderBookings, updateBooking } = useBookings()
+  const { updateBooking } = useBookings()
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null)
+  const [allBookings, setAllBookings] = useState<BookingData[]>([])
+  const [stats, setStats] = useState({ activeBookings: 0, thisMonthEarnings: 0, avgRating: 4.8, avgResponseTime: "12 min" })
 
-  // In production, this would filter by actual provider_id
-  const allBookings = getProviderBookings(user?.id || "")
-  const activeBookings = allBookings.filter((b) => b.status === "confirmed" || b.status === "pending")
-  const completedBookings = allBookings.filter((b) => b.status === "completed")
+  // Helper for address union type
+  const getAddressDisplay = (address: string | { street: string; city: string } | undefined) => {
+    if (!address) return 'Address not specified';
+    if (typeof address === 'string') return address;
+    return `${address.street}, ${address.city}`;
+  };
 
-  const thisMonthEarnings = completedBookings
-    .filter((b) => {
-      const bookingDate = new Date(b.created_at)
-      const now = new Date()
-      return bookingDate.getMonth() === now.getMonth() && bookingDate.getFullYear() === now.getFullYear()
-    })
-    .reduce((sum, b) => sum + b.total_amount, 0)
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!user?.id) return
+      const bookingsQuery = query(
+        collection(db, "bookings"),
+        where("providerId", "==", user.id),
+        orderBy("created_at", "desc")  // snake_case
+      )
+      const snap = await getDocs(bookingsQuery)
+      const data: BookingData[] = snap.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const docData = doc.data() as Partial<BookingData>;
+        return { id: doc.id, ...docData } as BookingData;
+      })
+      setAllBookings(data)
 
-  const avgRating = 4.8 // This would come from reviews in production
-  const avgResponseTime = "12 min" // This would be calculated from actual response data
+      // Calculate stats
+      const active = data.filter((b: BookingData) => ["pending", "assigned", "accepted", "in_progress"].includes(b.status))
+      const completedThisMonth = data.filter((b: BookingData) => {
+        const updatedAt = b.updated_at ? new Date(b.updated_at) : new Date();  // snake_case
+        const now = new Date();
+        return b.status === "completed" && updatedAt.getMonth() === now.getMonth() && updatedAt.getFullYear() === now.getFullYear();
+      })
+      const earnings = completedThisMonth.reduce((sum: number, b: BookingData) => sum + (b.price || b.total_amount || 0), 0)  // Fallback
+      setStats({
+        activeBookings: active.length,
+        thisMonthEarnings: earnings,
+        avgRating: 4.8, // Aggregate from reviews in production
+        avgResponseTime: "12 min"
+      })
+    }
 
-  const handleAcceptBooking = (bookingId: string) => {
-    updateBooking(bookingId, {
-      status: "confirmed",
-      provider_id: user?.id,
-    })
+    fetchBookings()
+  }, [user])
+
+  const handleAcceptBooking = async (bookingId: string) => {
+    await updateBooking(bookingId, { status: "accepted" as BookingStatus })
+    // Refetch bookings in production
   }
 
-  const handleCompleteBooking = (bookingId: string) => {
-    updateBooking(bookingId, {
-      status: "completed",
-      completed_date: new Date().toISOString(),
-    })
+  const handleStartBooking = async (bookingId: string) => {
+    await updateBooking(bookingId, { status: "in_progress" as BookingStatus })
   }
 
-  const handleRejectBooking = (bookingId: string) => {
-    if (confirm("Are you sure you want to reject this booking?")) {
-      updateBooking(bookingId, { status: "cancelled" })
+  const handleCompleteBooking = async (bookingId: string) => {
+    const otp = prompt("Enter OTP to complete:")
+    if (otp) {
+      await updateBooking(bookingId, { status: "completion_requested" as BookingStatus, otp })
+    }
+  }
+
+  const handleRejectBooking = async (bookingId: string) => {
+    if (confirm("Reject this booking?")) {
+      await updateBooking(bookingId, { status: "cancelled" as BookingStatus })
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "confirmed":
-        return "bg-green-100 text-green-800"
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "completed":
-        return "bg-blue-100 text-blue-800"
-      default:
-        return "bg-neutral-100 text-neutral-800"
+      case "accepted": case "in_progress": return "bg-green-100 text-green-800"
+      case "pending": case "assigned": return "bg-yellow-100 text-yellow-800"
+      case "completed": return "bg-blue-100 text-blue-800"
+      case "cancelled": return "bg-red-100 text-red-800"
+      default: return "bg-neutral-100 text-neutral-800"
     }
   }
 
@@ -68,31 +99,25 @@ export default function ProviderDashboard() {
       <DashboardLayout>
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Provider Dashboard</h1>
-          <p className="text-neutral-600">Manage your bookings and track your performance</p>
+          <p className="text-neutral-600">Manage your DOLT bookings, earnings, and performance</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Active Bookings"
-            value={activeBookings.length.toString()}
-            icon={Calendar}
-            trend={{ value: `${allBookings.length} total`, isPositive: true }}
-          />
-          <StatCard
-            title="This Month Earnings"
-            value={`$${thisMonthEarnings.toFixed(0)}`}
-            icon={DollarSign}
-            trend={{ value: `${completedBookings.length} completed`, isPositive: true }}
-            color="#4CAF50"
-          />
-          <StatCard title="Average Rating" value={avgRating.toString()} icon={Star} color="#FFC107" />
-          <StatCard title="Response Time" value={avgResponseTime} icon={Clock} color="#2196F3" />
+          <StatCard title="Active Bookings" value={stats.activeBookings.toString()} icon={Calendar} />
+          <StatCard title="This Month Earnings" value={`$${stats.thisMonthEarnings.toFixed(0)}`} icon={DollarSign} color="#4CAF50" />
+          <StatCard title="Average Rating" value={stats.avgRating.toString()} icon={Star} color="#FFC107" />
+          <StatCard title="Response Time" value={stats.avgResponseTime} icon={Clock} color="#2196F3" />
         </div>
 
-        {/* Upcoming Bookings */}
+        {/* Bookings Section */}
         <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <h2 className="text-xl font-bold mb-4">Bookings</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Bookings</h2>
+            <Link href="/dashboard/provider/analytics" className="text-[#FF6B35] hover:underline text-sm">
+              View Analytics →
+            </Link>
+          </div>
 
           {allBookings.length === 0 ? (
             <div className="text-center py-12">
@@ -102,33 +127,30 @@ export default function ProviderDashboard() {
             </div>
           ) : (
             <div className="space-y-4">
-              {allBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="p-4 border border-neutral-200 rounded-xl hover:border-[#FF6B35] transition-colors"
-                >
+              {allBookings.map((booking: BookingData) => (
+                <div key={booking.id} className="p-4 border border-neutral-200 rounded-xl hover:border-[#FF6B35] transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <div className="font-bold text-lg">{booking.service_title}</div>
-                      <div className="text-sm text-neutral-600">{booking.user_name || booking.user_email}</div>
-                      <div className="text-sm text-neutral-600 mt-1">Booking ID: {booking.id}</div>
+                      <div className="font-bold text-lg">{booking.service?.name || booking.service?.title || 'Service'}</div>  // Fallback
+                      <div className="text-sm text-neutral-600">{booking.homeowner?.name || booking.homeownerId}</div>
+                      <div className="text-sm text-neutral-600 mt-1">ID: {booking.id}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-xl text-[#FF6B35] mb-2">
-                        ${booking.total_amount} {booking.currency}
-                      </div>
+                      <div className="font-bold text-xl text-[#FF6B35] mb-2">${booking.price || booking.total_amount || 0}</div>  // Fallback
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
                         {booking.status}
                       </span>
                     </div>
                   </div>
 
-                  {booking.scheduled_date && (
+                  {booking.preferredDateTime && (
                     <div className="text-sm text-neutral-600 mb-2">
-                      📅 {format(new Date(booking.scheduled_date), "MMM dd, yyyy 'at' h:mm a")}
+                      📅 {format(new Date(booking.preferredDateTime), "MMM dd, yyyy 'at' h:mm a")}
                     </div>
                   )}
-                  <div className="text-sm text-neutral-600 mb-3">📍 {booking.address}</div>
+                  <div className="text-sm text-neutral-600 mb-3">
+                    <MapPin className="w-4 h-4 inline mr-1" /> {getAddressDisplay(booking.address)}
+                  </div>
 
                   {booking.notes && (
                     <div className="text-sm mb-3 p-3 bg-neutral-50 rounded-lg">
@@ -139,126 +161,17 @@ export default function ProviderDashboard() {
                   {/* Expanded Details */}
                   {selectedBooking === booking.id && (
                     <div className="mb-3 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
-                      <h4 className="font-bold mb-4 text-indigo-900">Complete Booking Information</h4>
-
-                      <div className="space-y-4">
-                        {/* Customer Information */}
+                      <h4 className="font-bold mb-4 text-indigo-900">Booking Details</h4>
+                      <div className="grid md:grid-cols-2 gap-4">
                         <div className="p-3 bg-white rounded-lg shadow-sm">
-                          <div className="text-xs font-semibold text-indigo-700 mb-2">Customer Details</div>
-                          <div className="space-y-1">
-                            {booking.user_name && (
-                              <div className="text-sm">
-                                <span className="text-neutral-600">Name:</span>
-                                <span className="font-medium ml-2">{booking.user_name}</span>
-                              </div>
-                            )}
-                            {booking.user_email && (
-                              <div className="text-sm">
-                                <span className="text-neutral-600">Email:</span>
-                                <span className="font-medium ml-2">{booking.user_email}</span>
-                              </div>
-                            )}
-                          </div>
+                          <div className="text-xs font-semibold text-indigo-700 mb-2">Homeowner</div>
+                          <div className="text-sm font-medium">{booking.homeowner?.name}</div>
+                          <div className="text-sm text-neutral-600">{booking.homeowner?.email}</div>
                         </div>
-
-                        {/* Service Details */}
-                        {booking.service_description && (
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
-                            <div className="text-xs font-semibold text-indigo-700 mb-2">Service Description</div>
-                            <div className="text-sm text-neutral-700">{booking.service_description}</div>
-                          </div>
-                        )}
-
-                        {/* Timeline */}
-                        <div className="grid md:grid-cols-3 gap-3">
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
-                            <div className="text-xs text-neutral-600 mb-1">Booking Created</div>
-                            <div className="font-medium text-sm">
-                              {format(new Date(booking.created_at), "MMM dd, yyyy")}
-                            </div>
-                            <div className="text-xs text-neutral-500">
-                              {format(new Date(booking.created_at), "h:mm a")}
-                            </div>
-                          </div>
-
-                          {booking.scheduled_date && (
-                            <div className="p-3 bg-white rounded-lg shadow-sm border-l-4 border-green-500">
-                              <div className="text-xs text-green-700 mb-1">Service Date</div>
-                              <div className="font-medium text-sm text-green-900">
-                                {format(new Date(booking.scheduled_date), "MMM dd, yyyy")}
-                              </div>
-                              <div className="text-xs text-green-700">
-                                {format(new Date(booking.scheduled_date), "h:mm a")}
-                              </div>
-                            </div>
-                          )}
-
-                          {booking.completed_date && (
-                            <div className="p-3 bg-white rounded-lg shadow-sm border-l-4 border-blue-500">
-                              <div className="text-xs text-blue-700 mb-1">Completed</div>
-                              <div className="font-medium text-sm text-blue-900">
-                                {format(new Date(booking.completed_date), "MMM dd, yyyy")}
-                              </div>
-                              <div className="text-xs text-blue-700">
-                                {format(new Date(booking.completed_date), "h:mm a")}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Payment & Location */}
-                        <div className="grid md:grid-cols-2 gap-3">
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
-                            <div className="text-xs font-semibold text-indigo-700 mb-2">Payment Details</div>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-neutral-600">Total Amount:</span>
-                                <span className="font-bold text-[#FF6B35]">
-                                  ${booking.total_amount} {booking.currency}
-                                </span>
-                              </div>
-                              {booking.payment_method && (
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-neutral-600">Method:</span>
-                                  <span className="font-medium capitalize">{booking.payment_method}</span>
-                                </div>
-                              )}
-                              {booking.payment_status && (
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-neutral-600">Payment Status:</span>
-                                  <span className="font-medium capitalize">{booking.payment_status}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="p-3 bg-white rounded-lg shadow-sm">
-                            <div className="text-xs font-semibold text-indigo-700 mb-2">Service Location</div>
-                            <div className="text-sm text-neutral-700 mb-1">{booking.address}</div>
-                            {booking.latitude && booking.longitude && (
-                              <div className="text-xs text-neutral-500">
-                                GPS: {booking.latitude.toFixed(4)}, {booking.longitude.toFixed(4)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Special Instructions */}
-                        {booking.notes && (
-                          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                            <div className="text-xs font-semibold text-amber-800 mb-1">⚠️ Special Instructions</div>
-                            <div className="text-sm text-amber-900">{booking.notes}</div>
-                          </div>
-                        )}
-
-                        {/* Reference Information */}
-                        <div className="pt-3 border-t border-indigo-200">
-                          <div className="text-xs text-neutral-500">
-                            Booking Reference: <span className="font-mono font-medium">{booking.id}</span>
-                          </div>
-                          <div className="text-xs text-neutral-500 mt-1">
-                            Last updated: {format(new Date(booking.updated_at), "MMM dd, yyyy 'at' h:mm a")}
-                          </div>
+                        <div className="p-3 bg-white rounded-lg shadow-sm">
+                          <div className="text-xs font-semibold text-indigo-700 mb-2">Transaction</div>
+                          <div className="text-sm">ID: {booking.transactionId}</div>
+                          <div className="text-sm text-neutral-600">Status: {booking.status}</div>
                         </div>
                       </div>
                     </div>
@@ -272,7 +185,7 @@ export default function ProviderDashboard() {
                       {selectedBooking === booking.id ? "Hide Details" : "View Details"}
                     </button>
 
-                    {booking.status === "pending" && (
+                    {booking.status === "assigned" && (
                       <>
                         <button
                           onClick={() => handleAcceptBooking(booking.id)}
@@ -291,18 +204,37 @@ export default function ProviderDashboard() {
                       </>
                     )}
 
-                    {booking.status === "confirmed" && (
+                    {booking.status === "accepted" && (
                       <button
-                        onClick={() => handleCompleteBooking(booking.id)}
+                        onClick={() => handleStartBooking(booking.id)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                       >
-                        Mark as Completed
+                        Start Job
                       </button>
                     )}
 
-                    {booking.user_email && (
-                      <button className="px-4 py-2 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 transition-colors">
-                        Contact Customer
+                    {booking.status === "in_progress" && (
+                      <button
+                        onClick={() => handleCompleteBooking(booking.id)}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                      >
+                        Request OTP Completion
+                      </button>
+                    )}
+
+                    {booking.status === "completion_requested" && (
+                      <button
+                        onClick={() => {
+                          const otp = prompt("Enter customer OTP:")
+                          if (otp && otp === booking.otp) {
+                            updateBooking(booking.id, { status: "completed" as BookingStatus })
+                          } else {
+                            alert("Invalid OTP")
+                          }
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                      >
+                        Verify OTP
                       </button>
                     )}
                   </div>
@@ -310,6 +242,22 @@ export default function ProviderDashboard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Quick Links */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <Link href="/dashboard/provider/settings" className="p-6 bg-white rounded-2xl shadow-sm text-center hover:shadow-md transition-shadow">
+            <Settings className="w-8 h-8 text-[#FF6B35] mx-auto mb-2" />
+            <div className="font-medium">Settings</div>
+          </Link>
+          <Link href="/dashboard/provider/analytics" className="p-6 bg-white rounded-2xl shadow-sm text-center hover:shadow-md transition-shadow">
+            <TrendingUp className="w-8 h-8 text-[#FF6B35] mx-auto mb-2" />
+            <div className="font-medium">Analytics</div>
+          </Link>
+          <Link href="/services" className="p-6 bg-white rounded-2xl shadow-sm text-center hover:shadow-md transition-shadow">
+            <Package className="w-8 h-8 text-[#FF6B35] mx-auto mb-2" />
+            <div className="font-medium">Marketplace</div>
+          </Link>
         </div>
       </DashboardLayout>
     </ProtectedRoute>

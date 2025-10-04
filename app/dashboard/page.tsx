@@ -14,7 +14,7 @@ export default function DashboardPage() {
       if (!user) {
         router.push("/login")
       } else {
-        // Redirect to role-specific dashboard
+        // Redirect to role-specific dashboard based on DOLT roles: admin, provider, homeowner (user), or manager/owner
         const dashboardRoute = getDashboardRoute(user.role)
         router.push(dashboardRoute)
       }
@@ -25,7 +25,7 @@ export default function DashboardPage() {
     <div className="min-h-screen flex items-center justify-center bg-neutral-50">
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-neutral-600">Redirecting to your dashboard...</p>
+        <p className="text-neutral-600">Redirecting to your DOLT dashboard...</p>
       </div>
     </div>
   )

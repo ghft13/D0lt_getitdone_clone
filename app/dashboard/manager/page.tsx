@@ -4,8 +4,22 @@ import DashboardLayout from "@/components/dashboard-layout"
 import StatCard from "@/components/stat-card"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Calendar, DollarSign, Wrench, TrendingUp } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"  // Added for potential future use
+import type { ExtendedAuthUser } from '@/lib/db-types'
+import { useEffect, useState } from "react"  // For future dynamic data
 
 export default function ManagerDashboard() {
+  const auth = useAuth()
+  const user = auth.user as ExtendedAuthUser | null  // Safe assertion if needed
+  const [stats, setStats] = useState({ companyBookings: 0, revenue: 0, activeProviders: 0, growthRate: 0 })  // Dynamic placeholder
+
+  useEffect(() => {
+    if (user?.company_id) {
+      // Fetch company-specific stats here
+      setStats({ companyBookings: 156, revenue: 12450, activeProviders: 12, growthRate: 23 })
+    }
+  }, [user])
+
   return (
     <ProtectedRoute allowedRoles={["owner", "manager"]}>
       <DashboardLayout>
@@ -18,21 +32,21 @@ export default function ManagerDashboard() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Company Bookings"
-            value="156"
+            value={stats.companyBookings.toString()}
             icon={Calendar}
             trend={{ value: "10% from last month", isPositive: true }}
           />
           <StatCard
             title="Revenue"
-            value="$12,450"
+            value={`$${stats.revenue}`}
             icon={DollarSign}
             trend={{ value: "15% from last month", isPositive: true }}
             color="#4CAF50"
           />
-          <StatCard title="Active Providers" value="12" icon={Wrench} color="#2196F3" />
+          <StatCard title="Active Providers" value={stats.activeProviders.toString()} icon={Wrench} color="#2196F3" />
           <StatCard
             title="Growth Rate"
-            value="23%"
+            value={`${stats.growthRate}%`}
             icon={TrendingUp}
             trend={{ value: "5% from last month", isPositive: true }}
             color="#9C27B0"
