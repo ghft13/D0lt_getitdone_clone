@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/contexts/language-context";
 import { useAuth } from "@/contexts/auth-context";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function FloatingNavbar() {
@@ -18,21 +18,27 @@ export default function FloatingNavbar() {
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
+  const langContainerRef = useRef<HTMLDivElement>(null);
+  const userContainerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleScroll = () => {
-      // Adjust threshold to hero height (e.g., 600px for hero section) - only for home
       if (isHome) {
         setIsScrolled(window.scrollY > 600);
       }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isHome]);
 
   useEffect(() => {
-    const handleClickOutside = () => {
-      setShowLangDropdown(false);
-      setShowUserDropdown(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langContainerRef.current && !langContainerRef.current.contains(e.target as Node)) {
+        setShowLangDropdown(false);
+      }
+      if (userContainerRef.current && !userContainerRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false);
+      }
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
@@ -51,7 +57,6 @@ export default function FloatingNavbar() {
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
 
-  // Position: On non-home pages, always top. On home, bottom initially, top after scroll
   const navbarPosition =
     isHome && !isScrolled
       ? "fixed bottom-8 left-1/2 -translate-x-1/2"
@@ -59,48 +64,47 @@ export default function FloatingNavbar() {
 
   return (
     <nav
-      className={`${navbarPosition} z-50 bg-black/90 backdrop-blur-md rounded-full px-3 py-2 transition-all duration-300 shadow-2xl border border-white/10`}
+      className={`${navbarPosition} z-50 bg-black/90 backdrop-blur-md rounded-full px-3 py-2 transition-all duration-300 shadow-2xl border border-white/10 md:px-4`}
+      role="navigation"
+      aria-label="Main navigation"
     >
-      <div className="flex items-center justify-end gap-2">
-        {" "}
-        {/* Right-aligned, content-sized */}
-        <Link href="/" className="flex items-center gap-1">
+      <div className="flex items-center justify-end gap-2 max-w-md mx-auto">
+        <Link href="/" className="flex items-center gap-1 flex-shrink-0">
           <Image
-            src="images/logo/D_white.png" // Path to your logo image in /public folder
+            src="/images/logo/D_white.png"
             alt="DOLT Logo"
-            width={24} // Adjust width as needed
-            height={24} // Adjust height as needed
+            width={24}
+            height={24}
             className="rounded-full"
+            priority
           />
         </Link>
-        <div className="flex items-center gap-2">
-          {" "}
-          {/* Reduced gap for compactness */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           <Link
             href="/"
-            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium"
+            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium truncate hidden sm:block"
           >
             {t("home")}
           </Link>
           <Link
             href="/services"
-            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium"
+            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium truncate hidden sm:block"
           >
             {t("services")}
           </Link>
           <Link
             href="/about"
-            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium"
+            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium truncate hidden sm:block"
           >
             {t("about")}
           </Link>
           <Link
             href="/contact"
-            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium"
+            className="text-white hover:text-[#FF6B35] transition-colors duration-300 text-xs font-medium truncate hidden sm:block"
           >
             {t("contact")}
           </Link>
-          <div className="relative">
+          <div className="relative" ref={langContainerRef}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -108,12 +112,14 @@ export default function FloatingNavbar() {
                 setShowUserDropdown(false);
               }}
               className="flex items-center gap-0.5 px-2 py-1 bg-[#8B4513] hover:bg-[#A0522D] text-white rounded-full text-xs font-medium transition-colors duration-300"
+              aria-expanded={showLangDropdown}
+              aria-label={`Select language, current: ${language.toUpperCase()}`}
             >
               {language.toUpperCase()}
-              <ChevronDown className="w-3 h-3" />
+              <ChevronDown className={`w-3 h-3 transition-transform ${showLangDropdown ? 'rotate-180' : ''}`} />
             </button>
             {showLangDropdown && (
-              <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[100px]">
+              <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[100px] z-[60]">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -138,7 +144,7 @@ export default function FloatingNavbar() {
             )}
           </div>
           {isAuthenticated && user ? (
-            <div className="relative">
+            <div className="relative" ref={userContainerRef}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -146,8 +152,10 @@ export default function FloatingNavbar() {
                   setShowLangDropdown(false);
                 }}
                 className="flex items-center gap-1 px-2 py-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors duration-300"
+                aria-expanded={showUserDropdown}
+                aria-label={`User menu for ${user.full_name}`}
               >
-                <Avatar className="w-6 h-6">
+                <Avatar className="w-6 h-6 flex-shrink-0">
                   <AvatarImage
                     src={user.profileImage || ""}
                     alt={user.full_name}
@@ -156,18 +164,18 @@ export default function FloatingNavbar() {
                     {getUserInitials(user.full_name)}
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-left hidden md:block">
-                  <div className="text-white text-xs font-medium">
+                <div className="text-left hidden md:block min-w-0">
+                  <div className="text-white text-xs font-medium truncate" title={user.full_name}>
                     {user.full_name}
                   </div>
-                  <div className="text-white/60 text-[10px]">
+                  <div className="text-white/60 text-[10px] truncate">
                     {getRoleDisplay(user.role)}
                   </div>
                 </div>
-                <ChevronDown className="w-3 h-3 text-white" />
+                <ChevronDown className={`w-3 h-3 text-white transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
               </button>
               {showUserDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[140px]">
+                <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[140px] z-[60]">
                   <Link
                     href="/dashboard"
                     className="w-full px-2 py-2 text-left text-white hover:bg-[#FF6B35] transition-colors duration-200 text-xs flex items-center gap-1"
@@ -181,6 +189,14 @@ export default function FloatingNavbar() {
                     onClick={() => setShowUserDropdown(false)}
                   >
                     {t("profile")}
+                  </Link>
+                  <Link
+                    href={`/dashboard/${user.role}/settings`}
+                    className="w-full px-2 py-2 text-left text-white hover:bg-[#FF6B35] transition-colors duration-200 text-xs flex items-center gap-1"
+                    onClick={() => setShowUserDropdown(false)}
+                  >
+                    <Settings className="w-3 h-3" />
+                    {t("settings")}
                   </Link>
                   <button
                     onClick={(e) => {
