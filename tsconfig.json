@@ -21,8 +21,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/lib/*": ["./lib/*"]
-    }
+      "@/lib/*": ["./lib/*"],
+      "@/components/ui/*": ["./components/ui/*"]
+    },
+    "types": ["node", "lucide-react", "date-fns"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
