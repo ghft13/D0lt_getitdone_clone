@@ -55,14 +55,14 @@ export default function Footer() {
           {/* Branding Section Pushed to Bottom */}
           <div className=" absolute bottom-0 grid grid-cols-1 sm:grid-cols-1 gap-4 sm:gap-0 mt-auto pb-4">
             <div className="flex flex-col items-start col-span-1">
+              <p className="text-[#FF6B35] text-3xl font- sm:text-xl mt-4 ml-4 relative left-[0%] mb-5   ">
+                Smart Maintenance Solutions
+              </p>
               <h1 className="text-[18vw] sm:text-[16vw] lg:text-[14vw] leading-[0.8] text-white font-bold tracking-tight -mt-4 sm:-mt-6">
                 {t("dolt")}
               </h1>
               <p className="text-[#FF6B35] text-xl sm:text-xl mt-4 ml-4 relative left-[62.5%] tracking-widetext-[#FF6B35] text-xl sm:text-xl mt-4 ml-4 relative left-[60%] tracking-[0.2em]">
                 GET IT DONE
-              </p>
-              <p className="text-[#FF6B35] text-xl sm:text-xl mt-4 ml-4 relative left-[%]   ">
-                Smart Maintenance Solutions
               </p>
             </div>
           </div>
