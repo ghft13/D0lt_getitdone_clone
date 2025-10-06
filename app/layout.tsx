@@ -12,7 +12,12 @@ import ChatWidget from "@/components/chat-widget";
 export const metadata: Metadata = {
   title: "DOLT - Smart Maintenance Solutions",
   description: "Professional maintenance services powered by IoT technology across Latin America",
-  generator: "Nasir",
+  creator: "Nasir",
+  icons: {
+    icon: "/images/logo/D_Black.png",
+    shortcut: "/images/logo/D_Black.png",
+    apple: "/images/logo/D_Black.png",
+  },
   openGraph: {
     title: "DOLT - Smart Maintenance Solutions",
     description: "Professional maintenance services powered by IoT technology across Latin America",
