@@ -2,7 +2,7 @@
 
 import type React from "react";
 import Image from "next/image";
-
+import axios from "axios";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Eye, EyeOff } from "lucide-react";
-import { signUp } from "@/lib/auth";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/db-types";
 
@@ -44,12 +43,28 @@ export default function SignupPage() {
   const { login } = useAuth();
   const router = useRouter();
 
+  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
+
+  // ✅ Email regex
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // ✅ Phone regex (10 digits, optional +91 or 0 prefix)
+  const isValidPhone = (phone: string) =>
+    /^(\+91[-\s]?)?[0]?[6-9]\d{9}$/.test(phone);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    // 🧠 Validation
+    if (!isValidEmail(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!isValidPhone(formData.phone)) {
+      setError("Please enter a valid 10-digit mobile number");
       return;
     }
 
@@ -59,31 +74,57 @@ export default function SignupPage() {
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const session = await signUp(
-        formData.email,
-        formData.password,
-        formData.fullName,
-        formData.phone,
-        formData.role
+      const response = await axios.post(
+        `${Backend_URL}/api/auth/signup`,
+        {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          role: formData.role,
+          password: formData.password,
+        },
+        { withCredentials: true }
       );
 
-      if (!session) {
-        setError("Failed to create account. Please try again.");
+      const data = response.data;
+
+      if (!data || !data.token) {
+        setError("Signup failed. Please try again.");
         setIsLoading(false);
         return;
       }
 
-      login(session);
-      router.push("/dashboard");
-    } catch (err) {
-      setError("An error occurred. Please try again.");
+      // Save session
+      login({
+        user: data.user,
+        token: data.token,
+        expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
+      });
+
+      // 🧭 Role-based redirect
+      if (data.role === "user") {
+        window.location.href = `${DASHBOARD_URL}/user`;
+      } else {
+        window.location.href = `${DASHBOARD_URL}/provider`;
+      }
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(
+        err.response?.data?.message || "An error occurred. Please try again."
+      );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -105,6 +146,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center p-6">
       <div className="w-full max-w-md">
+        {/* Logo + Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4 border">
             <Image
@@ -128,9 +170,11 @@ export default function SignupPage() {
               Sign up to access our maintenance platform
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col gap-4">
+                {/* Full Name */}
                 <div className="grid gap-2">
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
@@ -145,6 +189,7 @@ export default function SignupPage() {
                   />
                 </div>
 
+                {/* Email */}
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -159,19 +204,22 @@ export default function SignupPage() {
                   />
                 </div>
 
+                {/* Phone */}
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+1 (555) 123-4567"
+                    placeholder="+91 98765 43210"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    required
                     className="h-12"
                   />
                 </div>
 
+                {/* Role */}
                 <div className="grid gap-2">
                   <Label htmlFor="role">I am a</Label>
                   <Select
@@ -192,6 +240,7 @@ export default function SignupPage() {
                   </Select>
                 </div>
 
+                {/* Password */}
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
@@ -215,6 +264,7 @@ export default function SignupPage() {
                   </div>
                 </div>
 
+                {/* Confirm Password */}
                 <div className="grid gap-2">
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <div className="relative">
@@ -230,19 +280,27 @@ export default function SignupPage() {
                     <button
                       type="button"
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                     >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showConfirmPassword ? (
+                        <EyeOff size={20} />
+                      ) : (
+                        <Eye size={20} />
+                      )}
                     </button>
                   </div>
                 </div>
 
+                {/* Error Message */}
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
+                {/* Submit */}
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -252,6 +310,7 @@ export default function SignupPage() {
                 </Button>
               </div>
 
+              {/* Footer */}
               <div className="mt-6 text-center text-sm">
                 Already have an account?{" "}
                 <Link
@@ -265,6 +324,7 @@ export default function SignupPage() {
           </CardContent>
         </Card>
 
+        {/* Back to home */}
         <div className="text-center mt-6">
           <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm">
             ← Back to home

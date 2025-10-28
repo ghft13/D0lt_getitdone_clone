@@ -44,17 +44,22 @@ export default function FloatingNavbar() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const getUserInitials = (name: string) => {
+  // ✅ Fixed: Safe initials generator
+  const getUserInitials = (name?: string) => {
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return "U"; // fallback initial (U = User)
+    }
+
     return name
+      .trim()
       .split(" ")
-      .map((n) => n[0])
+      .map((n) => n[0]?.toUpperCase() || "")
       .join("")
-      .toUpperCase()
       .slice(0, 2);
   };
 
   const getRoleDisplay = (role: string) => {
-    return role.charAt(0).toUpperCase() + role.slice(1);
+    return role ? role.charAt(0).toUpperCase() + role.slice(1) : "";
   };
 
   const navbarPosition =
@@ -116,7 +121,7 @@ export default function FloatingNavbar() {
               aria-label={`Select language, current: ${language.toUpperCase()}`}
             >
               {language.toUpperCase()}
-              <ChevronDown className={`w-3 h-3 transition-transform ${showLangDropdown ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 transition-transform ${showLangDropdown ? "rotate-180" : ""}`} />
             </button>
             {showLangDropdown && (
               <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[100px] z-[60]">
@@ -158,7 +163,7 @@ export default function FloatingNavbar() {
                 <Avatar className="w-6 h-6 flex-shrink-0">
                   <AvatarImage
                     src={user.profileImage || ""}
-                    alt={user.full_name}
+                    alt={user.full_name || "User"}
                   />
                   <AvatarFallback className="bg-[#FF6B35] text-white text-[10px]">
                     {getUserInitials(user.full_name)}
@@ -172,7 +177,7 @@ export default function FloatingNavbar() {
                     {getRoleDisplay(user.role)}
                   </div>
                 </div>
-                <ChevronDown className={`w-3 h-3 text-white transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 text-white transition-transform ${showUserDropdown ? "rotate-180" : ""}`} />
               </button>
               {showUserDropdown && (
                 <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[140px] z-[60]">

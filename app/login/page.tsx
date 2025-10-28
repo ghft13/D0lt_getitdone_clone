@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type React from "react";
-
+import axios from "axios";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/lib/auth";
 import { useAuth } from "@/contexts/auth-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
@@ -33,28 +31,71 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
+  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
+
+  // ✅ Email validation regex
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  // ✅ Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Email validation
+    if (!isValidEmail(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const session = await signIn(formData.email, formData.password);
+      const res = await axios.post(
+        `${Backend_URL}/api/auth/login`,
+        {
+          email: formData.email.trim(),
+          password: formData.password,
+        },
+        { withCredentials: true }
+      );
 
-      if (!session) {
-        setError("Invalid email or password");
+      const data = res.data;
+
+      if (!data || !data.user || !data.token) {
+        setError("Invalid server response");
         setIsLoading(false);
         return;
       }
 
-      login(session);
-      router.push("/dashboard");
-    } catch (err) {
-      setError("An error occurred. Please try again.");
+      // 🧠 Save login session
+      login({
+        user: data.user,
+        token: data.token,
+        expiresAt: Date.now() + 60 * 60 * 1000,
+      });
+
+      console.log("✅ Logged in as:", data.user.role);
+
+      // 🧭 Role-based redirect
+      if (data.user.role === "user") {
+        window.location.href = `${DASHBOARD_URL}/user`;
+      } else if (data.user.role === "provider") {
+        window.location.href = `${DASHBOARD_URL}/provider`;
+      }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(
+        err.response?.data?.message || "An error occurred. Please try again."
+      );
+    } finally {
       setIsLoading(false);
     }
   };
 
+  // ✅ Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -66,6 +107,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center p-6">
       <div className="w-full max-w-md">
+        {/* Logo + Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center mx-auto mb-4 border">
             <Image
@@ -82,6 +124,7 @@ export default function LoginPage() {
           <p className="text-gray-600">Smart maintenance solutions</p>
         </div>
 
+        {/* Login Card */}
         <Card className="border-0 shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-gray-900">Sign In</CardTitle>
@@ -89,6 +132,7 @@ export default function LoginPage() {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <form onSubmit={handleSubmit}>
               <div className="flex flex-col gap-6">
@@ -97,6 +141,8 @@ export default function LoginPage() {
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
+
+                {/* Email */}
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -107,9 +153,13 @@ export default function LoginPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="h-12"
+                    className={`h-12 ${
+                      error.includes("email") ? "border-red-500" : ""
+                    }`}
                   />
                 </div>
+
+                {/* Password */}
                 <div className="grid gap-2">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
@@ -131,6 +181,8 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Remember Me */}
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2">
                     <Checkbox
@@ -153,6 +205,8 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
+
+                {/* Submit */}
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -161,6 +215,8 @@ export default function LoginPage() {
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </div>
+
+              {/* Footer */}
               <div className="mt-6 text-center text-sm">
                 Don&apos;t have an account?{" "}
                 <Link
@@ -170,18 +226,11 @@ export default function LoginPage() {
                   Sign up
                 </Link>
               </div>
-              {/* <div className="mt-6 pt-6 border-t border-neutral-200">
-                <p className="text-xs text-neutral-500 text-center mb-2">Demo accounts:</p>
-                <div className="space-y-1 text-xs text-neutral-600">
-                  <p>Admin: admin@dolt.com / D0LTadmin</p>
-                  <p>Provider: provider@dolt.com / provider123</p>
-                  <p>User: user@dolt.com / user123</p>
-                </div>
-              </div> */}
             </form>
           </CardContent>
         </Card>
 
+        {/* Back to home */}
         <div className="text-center mt-6">
           <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm">
             ← Back to home

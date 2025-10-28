@@ -29,7 +29,7 @@ export default function Hero() {
         />
         <div className="absolute inset-0 bg-black/40" />
 
-        {!isAuthenticated && (
+       
           <div className="absolute top-8 right-8 z-20 flex items-center gap-4">
             <Link
               href="/login"
@@ -44,7 +44,7 @@ export default function Hero() {
               {t("signup")}
             </Link>
           </div>
-        )}
+       
 
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="bg-black/60 backdrop-blur-sm rounded-3xl px-12 py-16 max-w-5xl mx-6">
