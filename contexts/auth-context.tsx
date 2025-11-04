@@ -20,6 +20,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+  console.log("✅ AuthProvider mounted on client");
+}, []);
+
+  useEffect(() => {
     // Check for existing session on mount
     const session = getSession()
     if (session) {
