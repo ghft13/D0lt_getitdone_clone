@@ -5,8 +5,6 @@ import axios from "axios";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,11 +19,21 @@ import { useAuth } from "@/contexts/auth-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
 
+// ✅ Added imports for role select
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
+    role: "", // ✅ includes admin now
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,19 +44,20 @@ export default function LoginPage() {
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
   const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
 
-  // ✅ Email validation regex
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const isValidEmail = (email: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // ✅ Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Email validation
     if (!isValidEmail(formData.email)) {
       setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!formData.role) {
+      setError("Please select your role");
       return;
     }
 
@@ -60,6 +69,7 @@ export default function LoginPage() {
         {
           email: formData.email.trim(),
           password: formData.password,
+          role: formData.role, // ✅ send admin role too
         },
         { withCredentials: true }
       );
@@ -72,20 +82,21 @@ export default function LoginPage() {
         return;
       }
 
-      // 🧠 Save login session
-      login({
-        user: data.user,
-        token: data.token,
-        expiresAt: Date.now() + 60 * 60 * 1000,
-      });
+      // login({
+      //   user: data.user,
+      //   token: data.token,
+      //   expiresAt: Date.now() + 60 * 60 * 1000,
+      // });
 
       console.log("✅ Logged in as:", data.user.role);
 
-      // 🧭 Role-based redirect
+      // ✅ Added redirect for admin
       if (data.user.role === "user") {
         window.location.href = `${DASHBOARD_URL}/user`;
       } else if (data.user.role === "provider") {
         window.location.href = `${DASHBOARD_URL}/provider`;
+      } else if (data.user.role === "admin") {
+        window.location.href = `${DASHBOARD_URL}/admin`;
       }
     } catch (err: any) {
       console.error("Login error:", err);
@@ -97,7 +108,6 @@ export default function LoginPage() {
     }
   };
 
-  // ✅ Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -155,9 +165,7 @@ export default function LoginPage() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className={`h-12 ${
-                      error.includes("email") ? "border-red-500" : ""
-                    }`}
+                    className="h-12"
                   />
                 </div>
 
@@ -184,6 +192,30 @@ export default function LoginPage() {
                   </div>
                 </div>
 
+                {/* ✅ Role Selector */}
+                <div className="grid gap-2">
+                  <Label htmlFor="role">Login as</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">
+                        Property Owner/Manager
+                      </SelectItem>
+                      <SelectItem value="provider">
+                        Service Provider/Technician
+                      </SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem> {/* ✅ Added */}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Remember Me */}
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2">
@@ -192,10 +224,7 @@ export default function LoginPage() {
                       name="rememberMe"
                       checked={formData.rememberMe}
                       onCheckedChange={(checked: boolean) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          rememberMe: !!checked,
-                        }))
+                        setFormData((prev) => ({ ...prev, rememberMe: !!checked }))
                       }
                     />
                     <span className="text-sm text-gray-600">Remember me</span>

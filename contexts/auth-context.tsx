@@ -36,7 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveSession(session)
     setUser(session.user)
 
-    
     const dashboardRoute = getDashboardRoute(session.user.role)
     router.push(dashboardRoute)
   }
