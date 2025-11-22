@@ -65,7 +65,9 @@ export default function LoginPage() {
 
     try {
       const res = await axios.post(
+    
         `${Backend_URL}/api/auth/login`,
+  
         {
           email: formData.email.trim(),
           password: formData.password,
@@ -82,13 +84,12 @@ export default function LoginPage() {
         return;
       }
 
-      // login({
-      //   user: data.user,
-      //   token: data.token,
-      //   expiresAt: Date.now() + 60 * 60 * 1000,
-      // });
+      login({
+        user: data.user,
+        token: data.token,
+        expiresAt: Date.now() + 60 * 60 * 1000,
+      });
 
-      console.log("✅ Logged in as:", data.user.role);
 
       // ✅ Added redirect for admin
       if (data.user.role === "user") {

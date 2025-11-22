@@ -25,7 +25,7 @@ export default function ContactPage() {
     // TODO: Implement actual form submission to database
     // For now, simulate submission
     setTimeout(() => {
-      console.log("[v0] Contact form submitted:", formData)
+    
       setSubmitStatus("success")
       setIsSubmitting(false)
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" })

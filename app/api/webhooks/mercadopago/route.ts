@@ -7,7 +7,6 @@ export async function POST(request: Request) {
     // TODO: Verify Mercado Pago webhook signature
     const body = await request.json()
 
-    console.log("[v0] Mercado Pago webhook received:", body.type)
 
     switch (body.type) {
       case "payment":
@@ -32,7 +31,7 @@ export async function POST(request: Request) {
         break
 
       default:
-        console.log("[v0] Unhandled Mercado Pago event type:", body.type)
+       
     }
 
     return NextResponse.json({ received: true })

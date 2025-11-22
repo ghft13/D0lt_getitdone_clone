@@ -12,7 +12,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const event = body
 
-    console.log("[v0] Stripe webhook received:", event.type)
 
     switch (event.type) {
       case "payment_intent.succeeded":
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
         break
 
       default:
-        console.log("[v0] Unhandled Stripe event type:", event.type)
+     
     }
 
     return NextResponse.json({ received: true })

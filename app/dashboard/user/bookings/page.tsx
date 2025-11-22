@@ -52,7 +52,7 @@ export default function UserBookingsPage() {
 
   const handleRateBooking = async (bookingId: string, rating: number) => {
     // Mock - add to booking context in production
-    console.log(`Rating ${rating} for booking ${bookingId}`)
+
   }
 
   const getStatusColor = (status: string) => {
