@@ -114,7 +114,7 @@ export default function SignupPage() {
       });
 
       // 🧭 Role-based redirect
-      if (data.role === "user") {
+      if (data.user.role === "user") {
         window.location.href = `${DASHBOARD_URL}/user`;
       } else {
         window.location.href = `${DASHBOARD_URL}/provider`;
