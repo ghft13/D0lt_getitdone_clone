@@ -10,6 +10,8 @@ import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function FloatingNavbar() {
+  // Check for existing session on mount
+
   const pathname = usePathname();
   const isHome = pathname === "/";
   const [isScrolled, setIsScrolled] = useState(false);
@@ -31,12 +33,53 @@ export default function FloatingNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isHome]);
 
+  const handleDashboardNavigation = () => {
+    const sessionString = localStorage.getItem("auth_session");
+
+    if (
+      !sessionString ||
+      sessionString === "undefined" ||
+      sessionString === "null"
+    ) {
+      alert("Please login first or create an account");
+      window.location.href = "/login";
+      return;
+    }
+
+    let authsession;
+    try {
+      authsession = JSON.parse(sessionString);
+    } catch (err) {
+      console.error("Invalid session format:", err);
+      alert("Session expired, please login again");
+      localStorage.removeItem("auth_session");
+      window.location.href = "/login";
+      return;
+    }
+
+    const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
+
+    if (authsession.user.role === "user") {
+      window.location.href = `${DASHBOARD_URL}/user`;
+    } else if (authsession.user.role === "provider") {
+      window.location.href = `${DASHBOARD_URL}/provider`;
+    } else if (authsession.user.role === "admin") {
+      window.location.href = `${DASHBOARD_URL}/admin`;
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (langContainerRef.current && !langContainerRef.current.contains(e.target as Node)) {
+      if (
+        langContainerRef.current &&
+        !langContainerRef.current.contains(e.target as Node)
+      ) {
         setShowLangDropdown(false);
       }
-      if (userContainerRef.current && !userContainerRef.current.contains(e.target as Node)) {
+      if (
+        userContainerRef.current &&
+        !userContainerRef.current.contains(e.target as Node)
+      ) {
         setShowUserDropdown(false);
       }
     };
@@ -121,7 +164,11 @@ export default function FloatingNavbar() {
               aria-label={`Select language, current: ${language.toUpperCase()}`}
             >
               {language.toUpperCase()}
-              <ChevronDown className={`w-3 h-3 transition-transform ${showLangDropdown ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-3 h-3 transition-transform ${
+                  showLangDropdown ? "rotate-180" : ""
+                }`}
+              />
             </button>
             {showLangDropdown && (
               <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[100px] z-[60]">
@@ -158,7 +205,7 @@ export default function FloatingNavbar() {
                 }}
                 className="flex items-center gap-1 px-2 py-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors duration-300"
                 aria-expanded={showUserDropdown}
-                aria-label={`User menu for ${user.full_name}`}
+                aria-label={`User menu for ${user.fullName}`}
               >
                 <Avatar className="w-6 h-6 flex-shrink-0">
                   <AvatarImage
@@ -170,39 +217,49 @@ export default function FloatingNavbar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-left hidden md:block min-w-0">
-                  <div className="text-white text-xs font-medium truncate" title={user.full_name}>
+                  <div
+                    className="text-white text-xs font-medium truncate"
+                    title={user.full_name}
+                  >
                     {user.full_name}
                   </div>
                   <div className="text-white/60 text-[10px] truncate">
                     {getRoleDisplay(user.role)}
                   </div>
                 </div>
-                <ChevronDown className={`w-3 h-3 text-white transition-transform ${showUserDropdown ? "rotate-180" : ""}`} />
+                <ChevronDown
+                  className={`w-3 h-3 text-white transition-transform ${
+                    showUserDropdown ? "rotate-180" : ""
+                  }`}
+                />
               </button>
               {showUserDropdown && (
                 <div className="absolute top-full right-0 mt-1 bg-black/95 backdrop-blur-md rounded-xl overflow-hidden shadow-xl border border-white/10 min-w-[140px] z-[60]">
                   <Link
                     href="/dashboard"
                     className="w-full px-2 py-2 text-left text-white hover:bg-[#FF6B35] transition-colors duration-200 text-xs flex items-center gap-1"
-                    onClick={() => setShowUserDropdown(false)}
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      handleDashboardNavigation();
+                    }}
                   >
                     {t("dashboard")}
                   </Link>
-                  <Link
+                  {/* <Link
                     href={`/dashboard/${user.role}/profile`}
                     className="w-full px-2 py-2 text-left text-white hover:bg-[#FF6B35] transition-colors duration-200 text-xs flex items-center gap-1"
                     onClick={() => setShowUserDropdown(false)}
                   >
                     {t("profile")}
-                  </Link>
-                  <Link
+                  </Link> */}
+                  {/* <Link
                     href={`/dashboard/${user.role}/settings`}
                     className="w-full px-2 py-2 text-left text-white hover:bg-[#FF6B35] transition-colors duration-200 text-xs flex items-center gap-1"
                     onClick={() => setShowUserDropdown(false)}
                   >
                     <Settings className="w-3 h-3" />
                     {t("settings")}
-                  </Link>
+                  </Link> */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

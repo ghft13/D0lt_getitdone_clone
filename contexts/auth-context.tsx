@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { type AuthUser, type AuthSession, getSession, saveSession, clearSession, getDashboardRoute } from "@/lib/auth"
-
+import axios from "axios"
 interface AuthContextType {
   user: AuthUser | null
   isLoading: boolean
@@ -13,7 +13,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
+ const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    // Check for existing session on mount
+
     const session = getSession()
     if (session) {
       setUser(session.user)
@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = (session: AuthSession) => {
+    console.log("Logging in user:", session.user)
     saveSession(session)
     setUser(session.user)
 
@@ -37,11 +38,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push(dashboardRoute)
   }
 
-  const logout = () => {
-    clearSession()
-    setUser(null)
-    router.push("/")
+
+   const logout = async () => {
+  try {
+    await axios.post(
+      `${Backend_URL}/api/auth/logout`,
+      {},
+      { withCredentials: true } // required for cookie removal
+    );
+  } catch (err) {
+    console.error("Logout request failed:", err);
   }
+  localStorage.removeItem("auth_session");
+
+  setUser(null);
+ 
+ router.push("/")
+};
 
   return (
     <AuthContext.Provider

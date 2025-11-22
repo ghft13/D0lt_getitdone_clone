@@ -38,7 +38,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login} = useAuth();
   const router = useRouter();
 
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
@@ -79,12 +79,14 @@ export default function LoginPage() {
 
       const data = res.data;
 
+     
       if (!data || !data.user || !data.token) {
         setError("Invalid server response");
         setIsLoading(false);
         return;
       }
 
+    
       login({
         user: data.user,
         token: data.token,
