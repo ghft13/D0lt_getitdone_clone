@@ -205,7 +205,7 @@ export default function FloatingNavbar() {
                 }}
                 className="flex items-center gap-1 px-2 py-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors duration-300"
                 aria-expanded={showUserDropdown}
-                aria-label={`User menu for ${user.fullName}`}
+                aria-label={`User menu for ${user.full_name}`}
               >
                 <Avatar className="w-6 h-6 flex-shrink-0">
                   <AvatarImage

@@ -38,17 +38,17 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login} = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
 
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
   const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
-
+  console.log(DASHBOARD_URL)
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
-
+    console.log("Backend_URL:", Backend_URL);
     e.preventDefault();
     setError("");
 
@@ -66,9 +66,9 @@ export default function LoginPage() {
 
     try {
       const res = await axios.post(
-    
+
         `${Backend_URL}/api/auth/login`,
-  
+
         {
           email: formData.email.trim(),
           password: formData.password,
@@ -78,15 +78,15 @@ export default function LoginPage() {
       );
 
       const data = res.data;
+      console.log(data)
 
-     
       if (!data || !data.user || !data.token) {
         setError("Invalid server response");
         setIsLoading(false);
         return;
       }
 
-    
+
       login({
         user: data.user,
         token: data.token,
@@ -95,13 +95,10 @@ export default function LoginPage() {
 
 
       // ✅ Added redirect for admin
-      if (data.user.role === "user") {
-        window.location.href = `${DASHBOARD_URL}/user`;
-      } else if (data.user.role === "provider") {
-        window.location.href = `${DASHBOARD_URL}/provider`;
-      } else if (data.user.role === "admin") {
-        window.location.href = `${DASHBOARD_URL}/admin`;
-      }
+      // ✅ Logic moved to auth-context.tsx login() function
+      // if (data.user.role === "user") {
+      //   window.location.href = `${DASHBOARD_URL}/user`;
+      // } else ...
     } catch (err: any) {
       console.error("Login error:", err);
       setError(

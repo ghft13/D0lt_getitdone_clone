@@ -13,7 +13,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
- const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -30,31 +30,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = (session: AuthSession) => {
-    console.log("Logging in user:", session.user)
     saveSession(session)
     setUser(session.user)
 
-    const dashboardRoute = getDashboardRoute(session.user.role)
-    router.push(dashboardRoute)
+    const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://dashboard.d0lt.local:3001";
+
+
+
+    let path = "/";
+    switch (session.user.role) {
+      case "admin":
+        path = "/admin";
+        break;
+      case "provider":
+        path = "/provider";
+        break;
+      case "manager":
+      case "property owner":
+      case "user":
+        path = "/user";
+        break;
+      default:
+
+        path = "/";
+    }
+
+    const finalUrl = `${DASHBOARD_URL}${path}`;
+
+
+    // Force hard redirect
+    window.location.href = finalUrl;
   }
 
 
-   const logout = async () => {
-  try {
-    await axios.post(
-      `${Backend_URL}/api/auth/logout`,
-      {},
-      { withCredentials: true } // required for cookie removal
-    );
-  } catch (err) {
-    console.error("Logout request failed:", err);
-  }
-  localStorage.removeItem("auth_session");
+  const logout = async () => {
+    try {
+      await axios.post(
+        `${Backend_URL}/api/auth/logout`,
+        {},
+        { withCredentials: true } // required for cookie removal
+      );
+    } catch (err) {
+      console.error("Logout request failed:", err);
+    }
+    localStorage.removeItem("auth_session");
 
-  setUser(null);
- 
- router.push("/")
-};
+    setUser(null);
+
+    router.push("/login")
+  };
 
   return (
     <AuthContext.Provider
