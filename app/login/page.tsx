@@ -43,7 +43,8 @@ export default function LoginPage() {
 
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
   const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
-  console.log(DASHBOARD_URL)
+  console.log(Backend_URL)
+
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
