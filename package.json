@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-   "build": "next build",
-  "dev": "next dev -H 0.0.0.0 -p 3000",
-  "lint": "next lint",
-  "start": "next start -H 0.0.0.0 -p $PORT"
+    "build": "next build",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "lint": "next lint",
+    "start": "next start -H 0.0.0.0 -p $PORT"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
@@ -48,7 +48,7 @@
     "cmdk": "1.0.4",
     "date-fns": "latest",
     "embla-carousel-react": "8.5.1",
-    "firebase": "^12.3.0",
+    "firebase": "^12.7.0",
     "framer-motion": "^12.23.22",
     "geist": "^1.5.1",
     "input-otp": "1.4.1",

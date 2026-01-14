@@ -26,6 +26,8 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/db-types";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -43,8 +45,15 @@ export default function SignupPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
+  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
+
+  // console.log("----------------------- DEBUG -----------------------");
+  // console.log("Signup Page Loaded");
+  // console.log("Backend_URL:", Backend_URL);
+  // console.log("DASHBOARD_URL (raw):", process.env.NEXT_PUBLIC_DASHBOARD_URL);
+  // console.log("DASHBOARD_URL (final):", DASHBOARD_URL);
+  // console.log("-----------------------------------------------------");
 
   // ✅ Email regex
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -52,6 +61,10 @@ export default function SignupPage() {
   // ✅ Phone regex (10 digits, optional +91 or 0 prefix)
   const isValidPhone = (phone: string) =>
     /^(\+91[-\s]?)?[0]?[6-9]\d{9}$/.test(phone);
+
+
+  // ... existing imports
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,14 +99,25 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+      // 1. Firebase Auth - Create User
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Update Display Name immediately
+      await updateProfile(user, {
+        displayName: formData.fullName
+      });
+
+      const idToken = await user.getIdToken();
+
+      // 2. Backend Sync & Profile Creation
       const response = await axios.post(
-        `${Backend_URL}/api/auth/signup`,
+        `${Backend_URL}/api/auth/signup-firebase`,
         {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
+          idToken,
           role: formData.role,
-          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone,
         },
         { withCredentials: true }
       );
@@ -114,16 +138,81 @@ export default function SignupPage() {
       });
 
       // 🧭 Role-based redirect
-      if (data.user.role === "user") {
-        window.location.href = `${DASHBOARD_URL}/user`;
-      } else {
-        window.location.href = `${DASHBOARD_URL}/provider`;
-      }
+      // 🧭 Role-based redirect
+      // 🧭 Role-based redirect
+      const targetUrl = data.role === "user" ? `${DASHBOARD_URL}/user` : `${DASHBOARD_URL}/provider`;
+      // console.log("Attempting redirect to:", targetUrl);
+
+      // Attempt redirect
+      window.location.href = targetUrl;
+      // console.log("Redirect command sent to:", targetUrl);
     } catch (err: any) {
       console.error("Signup error:", err);
-      setError(
-        err.response?.data?.message || "An error occurred. Please try again."
+      if (err.code === 'auth/email-already-in-use') {
+        setError("Email is already registered. Please login.");
+      } else {
+        setError(
+          err.response?.data?.message || err.message || "An error occurred. Please try again."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setError("");
+
+    if (!formData.role) {
+      setError("Please select a role first to sign up with Google.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      // Backend Sync & Profile Creation
+      const response = await axios.post(
+        `${Backend_URL}/api/auth/signup-firebase`,
+        {
+          idToken,
+          role: formData.role,
+          fullName: user.displayName || formData.fullName, // Use Google name if available
+          phone: formData.phone || undefined,
+        },
+        { withCredentials: true }
       );
+
+      const data = response.data;
+
+      if (!data || !data.token) {
+        setError("Signup failed. Please try again.");
+        return;
+      }
+
+      // Save session
+      login({
+        user: data.user,
+        token: data.token,
+        expiresAt: Date.now() + 60 * 60 * 1000, // 1 hour
+      });
+
+      // Redirect based on role
+      const targetUrl = data.role === "user" ? `${DASHBOARD_URL}/user` : `${DASHBOARD_URL}/provider`;
+      window.location.href = targetUrl;
+
+    } catch (err: any) {
+      console.error("Google Signup Error:", err);
+      if (err.response?.status === 400 && err.response?.data?.message?.includes("already exists")) {
+        setError("Account already exists. Please login instead.");
+      } else {
+        setError(err.response?.data?.message || err.message || "Failed to sign up with Google");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -307,6 +396,36 @@ export default function SignupPage() {
                   className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground bg-white">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleGoogleSignup}
+                  disabled={isLoading}
+                  className="w-full h-12"
+                >
+                  {isLoading ? (
+                    "Loading..."
+                  ) : (
+                    <>
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                      Sign up with Google
+                    </>
+                  )}
                 </Button>
               </div>
 

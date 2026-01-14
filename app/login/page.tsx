@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 // ✅ Added imports for role select
 import {
@@ -41,15 +43,20 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "";
-  console.log(Backend_URL)
 
+
+
+  const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
+
+
+  // console.log(Backend_URL)
   const isValidEmail = (email: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Backend_URL:", Backend_URL);
+
     e.preventDefault();
     setError("");
 
@@ -66,20 +73,25 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // 1. Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email.trim(), formData.password);
+      const user = userCredential.user;
+      const idToken = await user.getIdToken();
+      // console.log(user, "user")
+      // console.log(idToken, "idtoken")
+
+      // 2. Backend Sync & Session Creation
       const res = await axios.post(
-
-        `${Backend_URL}/api/auth/login`,
-
+        `${Backend_URL}/api/auth/login-firebase`,
         {
-          email: formData.email.trim(),
-          password: formData.password,
-          role: formData.role, // ✅ send admin role too
+          idToken,
+          role: formData.role,
         },
         { withCredentials: true }
       );
 
       const data = res.data;
-      console.log(data)
+      // console.log(data)
 
       if (!data || !data.user || !data.token) {
         setError("Invalid server response");
@@ -95,16 +107,64 @@ export default function LoginPage() {
       });
 
 
-      // ✅ Added redirect for admin
-      // ✅ Logic moved to auth-context.tsx login() function
-      // if (data.user.role === "user") {
-      //   window.location.href = `${DASHBOARD_URL}/user`;
-      // } else ...
+
     } catch (err: any) {
       console.error("Login error:", err);
       setError(
         err.response?.data?.message || "An error occurred. Please try again."
       );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setError("");
+
+    // ✅ Enforce Role Selection
+    if (!formData.role) {
+      setError("Please select your role first to sign in with Google.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      // Backend Sync
+      const res = await axios.post(
+        `${Backend_URL}/api/auth/login-firebase`,
+        {
+          idToken,
+          role: formData.role, // Now mandatory
+        },
+        { withCredentials: true }
+      );
+
+      const data = res.data;
+
+      if (!data || !data.user || !data.token) {
+        setError("Login failed. Please try again.");
+        return;
+      }
+
+      login({
+        user: data.user,
+        token: data.token,
+        expiresAt: Date.now() + 60 * 60 * 1000,
+      });
+
+    } catch (err: any) {
+      console.error("Google Login Error:", err);
+      if (err.response?.status === 404) {
+        setError("Account not found. Please Sign Up first.");
+      } else {
+        setError(err.response?.data?.message || err.message || "Failed to sign in with Google");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -247,6 +307,37 @@ export default function LoginPage() {
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground bg-white">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="w-full h-12"
+                >
+                  {isLoading ? (
+                    "Loading..."
+                  ) : (
+                    <>
+                      <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
+                      </svg>
+                      Sign in with Google
+                    </>
+                  )}
+                </Button>
+
               </div>
 
               {/* Footer */}
