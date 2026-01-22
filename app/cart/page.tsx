@@ -7,6 +7,7 @@ import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { Trash2, Plus, Minus, ShoppingBag, CreditCard } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { calculateFees } from "@/lib/feeCalculator"
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart()
@@ -124,17 +125,21 @@ export default function CartPage() {
                     <span className="text-neutral-600">Subtotal ({items.length} items)</span>
                     <span className="font-medium">${total.toFixed(2)}</span>
                   </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-neutral-500">DOLT Fee (2.05%)</span>
+                    <span className="text-neutral-600">${calculateFees(total).doltFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-neutral-500">Marketplace Charge (5%)</span>
+                    <span className="text-neutral-600">${calculateFees(total).marketplaceCharge.toFixed(2)}</span>
+                  </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-neutral-600">Shipping</span>
                     <span className="font-medium text-green-600">FREE</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-600">Tax (estimated)</span>
-                    <span className="font-medium">${(total * 0.1).toFixed(2)}</span>
-                  </div>
                   <div className="border-t border-neutral-200 pt-3 flex justify-between">
                     <span className="font-bold text-lg">Total</span>
-                    <span className="font-bold text-2xl text-[#FF6B35]">${(total * 1.1).toFixed(2)}</span>
+                    <span className="font-bold text-2xl text-[#FF6B35]">${calculateFees(total).finalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 

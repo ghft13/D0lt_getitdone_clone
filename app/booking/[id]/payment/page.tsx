@@ -6,6 +6,7 @@ import Header from "@/components/header"
 import { useAuth } from "@/contexts/auth-context"
 import { useBookings } from "@/contexts/booking-context"
 import { CreditCard, Building2, Loader2, Smartphone, Wallet, Bitcoin } from "lucide-react"
+import { calculateFees } from "@/lib/feeCalculator"
 
 type PaymentGateway = "stripe" | "razorpay" | "gpay" | "paypal" | "crypto"
 
@@ -94,11 +95,10 @@ export default function PaymentPage() {
               <button
                 onClick={() => setSelectedGateway("stripe")}
                 disabled={isProcessing}
-                className={`w-full p-6 rounded-xl border-2 transition-all ${
-                  selectedGateway === "stripe"
-                    ? "border-[#FF6B35] bg-[#FF6B35]/5"
-                    : "border-neutral-300 hover:border-neutral-400"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full p-6 rounded-xl border-2 transition-all ${selectedGateway === "stripe"
+                  ? "border-[#FF6B35] bg-[#FF6B35]/5"
+                  : "border-neutral-300 hover:border-neutral-400"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-4">
                   <CreditCard className="w-8 h-8 text-[#FF6B35]" />
@@ -113,11 +113,10 @@ export default function PaymentPage() {
               <button
                 onClick={() => setSelectedGateway("razorpay")}
                 disabled={isProcessing}
-                className={`w-full p-6 rounded-xl border-2 transition-all ${
-                  selectedGateway === "razorpay"
-                    ? "border-[#FF6B35] bg-[#FF6B35]/5"
-                    : "border-neutral-300 hover:border-neutral-400"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full p-6 rounded-xl border-2 transition-all ${selectedGateway === "razorpay"
+                  ? "border-[#FF6B35] bg-[#FF6B35]/5"
+                  : "border-neutral-300 hover:border-neutral-400"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-4">
                   <Building2 className="w-8 h-8 text-[#FF6B35]" />
@@ -132,11 +131,10 @@ export default function PaymentPage() {
               <button
                 onClick={() => setSelectedGateway("gpay")}
                 disabled={isProcessing}
-                className={`w-full p-6 rounded-xl border-2 transition-all ${
-                  selectedGateway === "gpay"
-                    ? "border-[#FF6B35] bg-[#FF6B35]/5"
-                    : "border-neutral-300 hover:border-neutral-400"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full p-6 rounded-xl border-2 transition-all ${selectedGateway === "gpay"
+                  ? "border-[#FF6B35] bg-[#FF6B35]/5"
+                  : "border-neutral-300 hover:border-neutral-400"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-4">
                   <Smartphone className="w-8 h-8 text-[#FF6B35]" />
@@ -151,11 +149,10 @@ export default function PaymentPage() {
               <button
                 onClick={() => setSelectedGateway("paypal")}
                 disabled={isProcessing}
-                className={`w-full p-6 rounded-xl border-2 transition-all ${
-                  selectedGateway === "paypal"
-                    ? "border-[#FF6B35] bg-[#FF6B35]/5"
-                    : "border-neutral-300 hover:border-neutral-400"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full p-6 rounded-xl border-2 transition-all ${selectedGateway === "paypal"
+                  ? "border-[#FF6B35] bg-[#FF6B35]/5"
+                  : "border-neutral-300 hover:border-neutral-400"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-4">
                   <Wallet className="w-8 h-8 text-[#FF6B35]" />
@@ -170,11 +167,10 @@ export default function PaymentPage() {
               <button
                 onClick={() => setSelectedGateway("crypto")}
                 disabled={isProcessing}
-                className={`w-full p-6 rounded-xl border-2 transition-all ${
-                  selectedGateway === "crypto"
-                    ? "border-[#FF6B35] bg-[#FF6B35]/5"
-                    : "border-neutral-300 hover:border-neutral-400"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`w-full p-6 rounded-xl border-2 transition-all ${selectedGateway === "crypto"
+                  ? "border-[#FF6B35] bg-[#FF6B35]/5"
+                  : "border-neutral-300 hover:border-neutral-400"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-4">
                   <Bitcoin className="w-8 h-8 text-[#FF6B35]" />
@@ -193,22 +189,20 @@ export default function PaymentPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => setSelectedCrypto("bitcoin")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      selectedCrypto === "bitcoin"
-                        ? "border-[#FF6B35] bg-white"
-                        : "border-neutral-300 hover:border-neutral-400"
-                    }`}
+                    className={`p-4 rounded-lg border-2 transition-all ${selectedCrypto === "bitcoin"
+                      ? "border-[#FF6B35] bg-white"
+                      : "border-neutral-300 hover:border-neutral-400"
+                      }`}
                   >
                     <div className="font-bold">Bitcoin (BTC)</div>
                     <div className="text-sm text-neutral-600">≈ 0.0032 BTC</div>
                   </button>
                   <button
                     onClick={() => setSelectedCrypto("ethereum")}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      selectedCrypto === "ethereum"
-                        ? "border-[#FF6B35] bg-white"
-                        : "border-neutral-300 hover:border-neutral-400"
-                    }`}
+                    className={`p-4 rounded-lg border-2 transition-all ${selectedCrypto === "ethereum"
+                      ? "border-[#FF6B35] bg-white"
+                      : "border-neutral-300 hover:border-neutral-400"
+                      }`}
                   >
                     <div className="font-bold">Ethereum (ETH)</div>
                     <div className="text-sm text-neutral-600">≈ 0.065 ETH</div>
@@ -225,17 +219,25 @@ export default function PaymentPage() {
                   <span className="font-medium">{booking.service_title}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Service Fee:</span>
-                  <span className="font-medium">${booking.total_amount}.00</span>
+                  <span className="text-neutral-600">Base Price:</span>
+                  <span className="font-medium">${booking.total_amount.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Processing Fee:</span>
-                  <span className="font-medium">$5.00</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-500">DOLT Fee (2.05%):</span>
+                  <span className="text-neutral-600">
+                    ${calculateFees(booking.total_amount).doltFee.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-500">Marketplace Charge (5%):</span>
+                  <span className="text-neutral-600">
+                    ${calculateFees(booking.total_amount).marketplaceCharge.toFixed(2)}
+                  </span>
                 </div>
                 <div className="border-t border-neutral-300 pt-2 mt-2 flex justify-between">
                   <span className="font-bold">Total:</span>
                   <span className="font-bold text-[#FF6B35]">
-                    ${(booking.total_amount + 5).toFixed(2)} {booking.currency}
+                    ${calculateFees(booking.total_amount).finalAmount.toFixed(2)} {booking.currency}
                   </span>
                 </div>
               </div>
@@ -252,16 +254,15 @@ export default function PaymentPage() {
                   Processing Payment...
                 </>
               ) : (
-                `Pay ${
-                  selectedGateway === "stripe"
-                    ? "with Stripe"
-                    : selectedGateway === "razorpay"
-                      ? "with Razorpay"
-                      : selectedGateway === "gpay"
-                        ? "with Google Pay"
-                        : selectedGateway === "paypal"
-                          ? "with PayPal"
-                          : `with ${selectedCrypto === "bitcoin" ? "Bitcoin" : "Ethereum"}`
+                `Pay ${selectedGateway === "stripe"
+                  ? "with Stripe"
+                  : selectedGateway === "razorpay"
+                    ? "with Razorpay"
+                    : selectedGateway === "gpay"
+                      ? "with Google Pay"
+                      : selectedGateway === "paypal"
+                        ? "with PayPal"
+                        : `with ${selectedCrypto === "bitcoin" ? "Bitcoin" : "Ethereum"}`
                 }`
               )}
             </button>

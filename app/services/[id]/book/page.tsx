@@ -10,6 +10,7 @@ import { useBookings } from "@/contexts/booking-context"
 import { getCurrentLocation, geocodeAddress, type Coordinates } from "@/lib/geolocation"
 import { getServiceById } from "@/lib/services"
 import { MapPin, Calendar, FileText } from "lucide-react"
+import { calculateFees } from "@/lib/feeCalculator"
 
 export default function BookServicePage() {
   const params = useParams()
@@ -272,10 +273,22 @@ export default function BookServicePage() {
                     ${service.base_price} {service.currency}
                   </span>
                 </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-500">DOLT Fee (2.05%):</span>
+                  <span className="text-neutral-600">
+                    ${calculateFees(service.base_price).doltFee.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-neutral-500">Marketplace Charge (5%):</span>
+                  <span className="text-neutral-600">
+                    ${calculateFees(service.base_price).marketplaceCharge.toFixed(2)}
+                  </span>
+                </div>
                 <div className="border-t border-neutral-300 pt-2 mt-2 flex justify-between">
                   <span className="font-bold">Total:</span>
                   <span className="font-bold text-[#FF6B35]">
-                    ${service.base_price} {service.currency}
+                    ${calculateFees(service.base_price).finalAmount.toFixed(2)} {service.currency}
                   </span>
                 </div>
               </div>

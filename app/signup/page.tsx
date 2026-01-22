@@ -234,7 +234,18 @@ export default function SignupPage() {
     } catch (err: any) {
       console.error("Google Signup Error:", err);
 
-      if (err.code === 'auth/account-exists-with-different-credential') {
+      // Handle specific Firebase auth errors
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User closed the popup - don't show error, just reset state
+        setIsLoading(false);
+        return;
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Multiple popup requests - ignore
+        setIsLoading(false);
+        return;
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Popup was blocked by your browser. Please allow popups for this site and try again.");
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
         toast({
           title: "Account Exists",
           description: "You already have an account with this email using a password. Please login with email and password.",

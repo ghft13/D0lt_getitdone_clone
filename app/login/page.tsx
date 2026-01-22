@@ -198,7 +198,26 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error("Google Login Error:", err);
-      if (err.response?.status === 404) {
+
+      // Handle specific Firebase auth errors
+      if (err.code === 'auth/popup-closed-by-user') {
+        // User closed the popup - don't show error, just reset state
+        setIsLoading(false);
+        return;
+      } else if (err.code === 'auth/cancelled-popup-request') {
+        // Multiple popup requests - ignore
+        setIsLoading(false);
+        return;
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Popup was blocked by your browser. Please allow popups for this site and try again.");
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        toast({
+          title: "Account Exists",
+          description: "You already have an account with this email using a different sign-in method. Please use that method to login.",
+          variant: "destructive",
+        });
+        setError("Account exists with a different sign-in method.");
+      } else if (err.response?.status === 404) {
         setError("Account not found. Please Sign Up first.");
       } else {
         setError(err.response?.data?.message || err.message || "Failed to sign in with Google");
