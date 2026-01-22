@@ -4,6 +4,7 @@ import "./global.css";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers"; // ✅ import here
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "DOLT - Smart Maintenance Solutions",
@@ -14,7 +15,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="antialiased bg-background text-foreground">
-        <Providers>{children}</Providers> {/* ✅ Wrapped here */}
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers> {/* ✅ Wrapped here */}
       </body>
     </html>
   );

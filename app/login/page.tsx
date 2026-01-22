@@ -18,8 +18,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from "lucide-react";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 // ✅ Added imports for role select
 import {
@@ -42,6 +43,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
 
 
@@ -49,6 +51,8 @@ export default function LoginPage() {
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
   const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
 
+  console.log(Backend_URL, 'backend')
+  console.log(DASHBOARD_URL, 'dashboard')
 
   // console.log(Backend_URL)
   const isValidEmail = (email: string) =>
@@ -81,6 +85,7 @@ export default function LoginPage() {
       // console.log(idToken, "idtoken")
 
       // 2. Backend Sync & Session Creation
+      console.log(`[Login] Attempting to sync with backend at: ${Backend_URL}/api/auth/login-firebase`);
       const res = await axios.post(
         `${Backend_URL}/api/auth/login-firebase`,
         {
@@ -110,9 +115,42 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(
-        err.response?.data?.message || "An error occurred. Please try again."
-      );
+
+      // ✅ Handle Google Account Logic
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        try {
+          // Check what sign-in methods exist for this email
+          const methods = await fetchSignInMethodsForEmail(auth, formData.email.trim());
+          if (methods.includes('google.com')) {
+            toast({
+              title: "Use Google Login",
+              description: "You used Google to sign in with this email. Please use the 'Sign in with Google' button.",
+              variant: "default",
+              className: "bg-orange-500 text-white border-none"
+            });
+            setError("Please use 'Sign in with Google' as you originally signed up with it.");
+            setIsLoading(false);
+            return;
+          }
+        } catch (fetchErr) {
+          console.error("Error fetching sign-in methods:", fetchErr);
+        }
+
+        setError("Invalid email or password. Please check your credentials.");
+      } else if (err.code === 'auth/too-many-requests') {
+        setError("Access to this account has been temporarily disabled due to many failed login attempts. Please try again later.");
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        toast({
+          title: "Account Exists",
+          description: "You already created an account with this email using a different method. Please login using that method.",
+          variant: "destructive",
+        });
+        setError("Account already exists with a different sign-in method.");
+      } else {
+        setError(
+          err.response?.data?.message || "An error occurred. Please try again."
+        );
+      }
     } finally {
       setIsLoading(false);
     }

@@ -26,8 +26,13 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import type { UserRole } from "@/lib/db-types";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup, fetchSignInMethodsForEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+
+// ✅ International Phone Input
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -44,6 +49,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   const Backend_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
   const DASHBOARD_URL = process.env.NEXT_PUBLIC_DASHBOARD_URL || "http://localhost:3001";
@@ -58,9 +64,10 @@ export default function SignupPage() {
   // ✅ Email regex
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // ✅ Phone regex (10 digits, optional +91 or 0 prefix)
-  const isValidPhone = (phone: string) =>
-    /^(\+91[-\s]?)?[0]?[6-9]\d{9}$/.test(phone);
+  // ✅ Phone Validation using Library
+  const isValidPhone = (phone: string) => {
+    return phone && isValidPhoneNumber(phone);
+  };
 
 
   // ... existing imports
@@ -77,7 +84,7 @@ export default function SignupPage() {
     }
 
     if (!isValidPhone(formData.phone)) {
-      setError("Please enter a valid 10-digit mobile number");
+      setError("Please enter a valid phone number with country code");
       return;
     }
 
@@ -139,7 +146,6 @@ export default function SignupPage() {
 
       // 🧭 Role-based redirect
       // 🧭 Role-based redirect
-      // 🧭 Role-based redirect
       const targetUrl = data.role === "user" ? `${DASHBOARD_URL}/user` : `${DASHBOARD_URL}/provider`;
       // console.log("Attempting redirect to:", targetUrl);
 
@@ -149,7 +155,26 @@ export default function SignupPage() {
     } catch (err: any) {
       console.error("Signup error:", err);
       if (err.code === 'auth/email-already-in-use') {
-        setError("Email is already registered. Please login.");
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, formData.email);
+          if (methods.includes('google.com')) {
+            toast({
+              title: "Account Exists",
+              description: "You already signed up with Google. Please use Google Sign In.",
+              variant: "destructive",
+            });
+            setError("You already have an account with Google. Please sign in with Google.");
+          } else {
+            toast({
+              title: "Account Exists",
+              description: "This email is already registered. Please login.",
+              variant: "destructive",
+            });
+            setError("Email is already registered. Please login.");
+          }
+        } catch (e) {
+          setError("Email is already registered. Please login.");
+        }
       } else {
         setError(
           err.response?.data?.message || err.message || "An error occurred. Please try again."
@@ -208,7 +233,20 @@ export default function SignupPage() {
 
     } catch (err: any) {
       console.error("Google Signup Error:", err);
-      if (err.response?.status === 400 && err.response?.data?.message?.includes("already exists")) {
+
+      if (err.code === 'auth/account-exists-with-different-credential') {
+        toast({
+          title: "Account Exists",
+          description: "You already have an account with this email using a password. Please login with email and password.",
+          variant: "destructive",
+        });
+        setError("Account already exists. Please login with your email and password.");
+      } else if (err.response?.status === 400 && err.response?.data?.message?.includes("already exists")) {
+        toast({
+          title: "Account Exists",
+          description: "Account already exists. Please login instead.",
+          variant: "destructive",
+        });
         setError("Account already exists. Please login instead.");
       } else {
         setError(err.response?.data?.message || err.message || "Failed to sign up with Google");
@@ -296,16 +334,15 @@ export default function SignupPage() {
                 {/* Phone */}
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="h-12"
-                  />
+                  <div className="phone-input-container">
+                    <PhoneInput
+                      placeholder="Enter phone number"
+                      value={formData.phone}
+                      onChange={(value) => setFormData(prev => ({ ...prev, phone: value || '' }))}
+                      defaultCountry="IN" // Default to India but allow change
+                      className="flex h-12 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
                 </div>
 
                 {/* Role */}
