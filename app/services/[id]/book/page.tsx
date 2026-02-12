@@ -17,7 +17,7 @@ export default function BookServicePage() {
   const router = useRouter()
   const { user, isAuthenticated } = useAuth()
   const { addBooking } = useBookings()
-  const [service, setService] = useState<ReturnType<typeof getServiceById>>(null)
+  const [service, setService] = useState<ReturnType<typeof getServiceById>>(undefined)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [useCurrentLocation, setUseCurrentLocation] = useState(false)
@@ -98,7 +98,7 @@ export default function BookServicePage() {
         updated_at: new Date().toISOString(),
         service_title: service.title,
         service_description: service.description,
-        user_name: user.name,
+        user_name: user.full_name,
         user_email: user.email,
       }
 

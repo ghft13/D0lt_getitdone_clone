@@ -7,12 +7,13 @@ export const getAllServices = async () => {
   try {
     const res = await axios.get(`${Backend_URL}/api/services/all`);
 
-    return res.data; // returns array of services
+    return res.data || []; // returns array of services
   } catch (error) {
     console.error("Error fetching services:", error);
-    throw error;
+    return [];
   }
 };
+
 
 export const getAllProducts = async () => {
   try {
@@ -21,6 +22,8 @@ export const getAllProducts = async () => {
     return res.data?.data || [];
   } catch (error) {
     console.error("Error fetching products:", error);
-    throw error;
+    // Return empty array instead of throwing to prevent component crash
+    return [];
   }
 };
+

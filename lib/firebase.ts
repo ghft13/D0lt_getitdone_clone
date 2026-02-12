@@ -12,15 +12,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
-console.log("🔥 Firebase Config Debug:");
-console.log("API Key present:", !!firebaseConfig.apiKey, "Length:", firebaseConfig.apiKey?.length);
-console.log("Auth Domain:", firebaseConfig.authDomain);
-console.log("Project ID:", firebaseConfig.projectId);
+let app;
+let db;
+let auth;
 
-if (!firebaseConfig.apiKey) {
-  console.error("❌ CRITICAL: Firebase API Key is missing! Check .env.local and .env");
+try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error("Firebase API Key is missing. Check your environment variables.");
+  }
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+  console.log("✅ Firebase initialized successfully");
+} catch (error) {
+  console.error("❌ Firebase initialization failed:", error);
+  // Provide mock or fallback if necessary, but at least don't crash the app
 }
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+export { db, auth };

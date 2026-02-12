@@ -1,8 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+
 import { useRouter } from "next/navigation"
-import { type AuthUser, type AuthSession, saveSession, clearSession } from "@/lib/auth"
+import { type AuthUser, type AuthSession, saveSession, clearSession, getSession } from "@/lib/auth"
+
 
 interface AuthContextType {
   user: AuthUser | null
@@ -18,6 +20,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+
+  // ✅ Load session on mount to prevent permanent loading
+  useEffect(() => {
+    const session = getSession();
+    if (session) {
+      setUser(session.user);
+    }
+    setIsLoading(false); // Allow app to render
+  }, []);
+
+
 
   const login = (session: AuthSession) => {
     saveSession(session)
